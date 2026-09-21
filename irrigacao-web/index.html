@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>Sistema de Irrigação Automatizada</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1, viewport-fit=cover'>
+    <meta name='theme-color' content='#10b981'>
+    <meta name='description' content='Dashboard de monitoramento e controle do sistema de irrigação automatizada'>
+    <link rel='stylesheet' type='text/css' media='screen' href='main.css'>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo-section">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='40' fill='%2310b981'/%3E%3Cpath d='M50 20 Q60 35 50 50 Q40 35 50 20' fill='white'/%3E%3C/svg%3E" alt="Logo" class="logo">
+                    <h1>Sistema de Irrigação</h1>
+                </div>
+                <div class="header-actions">
+                    <button class="btn-icon" id="settingsBtn" title="Configurações" aria-label="Configurações">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                        </svg>
+                    </button>
+                    <div class="status-indicator">
+                        <span class="status-dot online" id="statusDot"></span>
+                        <span class="status-text" id="statusText">Verificando...</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Settings Panel (hidden by default) -->
+        <div class="settings-panel" id="settingsPanel">
+            <div class="settings-content">
+                <h3>Configurações do Dispositivo</h3>
+                <p class="settings-desc">Informe o endereço IP do ESP32 na sua rede para ler os dados reais dos sensores. Deixe em branco para usar o modo de simulação.</p>
+                <div class="settings-row">
+                    <label for="esp32Url">Endereço do ESP32</label>
+                    <input type="text" id="esp32Url" placeholder="ex: 192.168.1.50">
+                </div>
+                <div class="settings-row">
+                    <label for="cityInput">Cidade para clima externo</label>
+                    <input type="text" id="cityInput" placeholder="ex: Chapecó, SC">
+                </div>
+                <div class="settings-actions">
+                    <button class="btn-secondary" id="testConnBtn">Testar conexão</button>
+                    <button class="btn-control" id="saveSettingsBtn">Salvar</button>
+                </div>
+                <p class="settings-status" id="settingsStatus"></p>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Dashboard Title -->
+            <div class="dashboard-header">
+                <h2>Dashboard de Irrigação</h2>
+                <p>Monitoramento em tempo real do sistema</p>
+            </div>
+
+            <!-- Status Cards -->
+            <div class="cards-grid">
+                <!-- Umidade Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.32 0z"/>
+                        </svg>
+                        <h3>Umidade do Solo</h3>
+                    </div>
+                    <div class="card-content">
+                        <div class="value-display">
+                            <span class="value" id="humidityValue">--</span>
+                            <span class="unit">%</span>
+                        </div>
+                        <div class="status-badge" id="humidityStatus">--</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="humidityBar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Temperatura Card (sensor local) -->
+                <div class="card">
+                    <div class="card-header">
+                        <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M12 2v20M12 2a3 3 0 0 1 3 3v14a3 3 0 0 1-3 3 3 3 0 0 1-3-3V5a3 3 0 0 1 3-3z"/>
+                        </svg>
+                        <h3>Temperatura do Solo/Ambiente</h3>
+                    </div>
+                    <div class="card-content">
+                        <div class="value-display">
+                            <span class="value" id="temperatureValue">--</span>
+                            <span class="unit">°C</span>
+                        </div>
+                        <p class="ideal-range">Ideal: 20-25°C</p>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="temperatureBar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Clima Real Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <circle cx="12" cy="12" r="5"/>
+                            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                        </svg>
+                        <h3>Clima Externo (Hoje)</h3>
+                    </div>
+                    <div class="card-content" id="weatherCardContent">
+                        <div class="value-display">
+                            <span class="value" id="weatherTempValue">--</span>
+                            <span class="unit">°C</span>
+                        </div>
+                        <p class="ideal-range" id="weatherHumidity">Umidade do ar: --%</p>
+                        <p class="ideal-range" id="weatherLocation">Localização: não configurada</p>
+                        <p class="ideal-range" id="weatherUpdated"></p>
+                    </div>
+                </div>
+
+                <!-- Bomba Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
+                            <polyline points="13 2 13 9 20 9"/>
+                        </svg>
+                        <h3>Bomba d'Água</h3>
+                    </div>
+                    <div class="card-content pump-card">
+                        <div class="pump-status">
+                            <p class="pump-state" id="pumpState">DESLIGADA</p>
+                            <p class="pump-time" id="pumpTime">Última atualização: --</p>
+                        </div>
+                        <div class="pump-indicator" id="pumpIndicator"></div>
+                    </div>
+                </div>
+
+                <!-- Controle Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <circle cx="12" cy="12" r="1"/>
+                            <path d="M12 1v6m0 6v6"/>
+                            <path d="M4.22 4.22l4.24 4.24m3.08 3.08l4.24 4.24"/>
+                            <path d="M1 12h6m6 0h6"/>
+                            <path d="M4.22 19.78l4.24-4.24m3.08-3.08l4.24-4.24"/>
+                        </svg>
+                        <h3>Controle</h3>
+                    </div>
+                    <div class="card-content control-card">
+                        <button class="btn-control" id="controlBtn">Ligar Bomba</button>
+                        <label class="auto-toggle">
+                            <input type="checkbox" id="autoModeToggle" checked>
+                            <span>Irrigação automática</span>
+                        </label>
+                        <p class="control-text" id="controlText">Clique para iniciar irrigação</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="charts-section">
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="humidity-chart">Umidade (24h)</button>
+                    <button class="tab-btn" data-tab="temperature-chart">Temperatura (24h)</button>
+                    <button class="tab-btn" data-tab="history-panel">Histórico da Bomba</button>
+                </div>
+
+                <!-- Humidity Chart -->
+                <div class="chart-container active" id="humidity-chart">
+                    <h3>Histórico de Umidade</h3>
+                    <p class="chart-subtitle">Últimas 24 horas</p>
+                    <canvas id="humidityCanvas" class="chart-canvas"></canvas>
+                </div>
+
+                <!-- Temperature Chart -->
+                <div class="chart-container" id="temperature-chart">
+                    <h3>Histórico de Temperatura</h3>
+                    <p class="chart-subtitle">Últimas 24 horas</p>
+                    <canvas id="temperatureCanvas" class="chart-canvas"></canvas>
+                </div>
+
+                <!-- History Panel -->
+                <div class="chart-container" id="history-panel">
+                    <h3>Histórico de Acionamentos</h3>
+                    <p class="chart-subtitle">Últimas ações da bomba nesta sessão</p>
+                    <ul class="history-list" id="historyList">
+                        <li class="history-empty">Nenhum acionamento registrado ainda.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- System Info -->
+            <div class="system-info">
+                <h3>Informações do Sistema</h3>
+                <ul class="info-list" id="infoList">
+                    <li>
+                        <svg class="check-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+                        </svg>
+                        <span id="infoSensor">Verificando conexão com o sensor...</span>
+                    </li>
+                    <li>
+                        <svg class="check-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+                        </svg>
+                        <span id="infoHumidity">Aguardando leitura de umidade...</span>
+                    </li>
+                    <li>
+                        <svg class="check-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+                        </svg>
+                        <span id="infoNext">Calculando próxima irrigação automática...</span>
+                    </li>
+                </ul>
+            </div>
+        </main>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
